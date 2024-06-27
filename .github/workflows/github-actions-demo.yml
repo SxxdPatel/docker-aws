@@ -42,7 +42,7 @@ jobs:
 
     - name: Build production Worker Docker image
       if: success()
-      run: docker build -t $WORKER_APP2_IMAGE:latest -f woker/Dockerfile worker
+      run: docker build -t $WORKER_APP2_IMAGE:latest -f worker/Dockerfile worker
 
     - name: Build production Nginx Docker image
       if: success()
