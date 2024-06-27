@@ -1,0 +1,65 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      REACT_APP_IMAGE: saadp30/multi-client
+      SERVER_APP1_IMAGE: saadp30/multi-server
+      WORKER_APP2_IMAGE: saadp30/multi-worker
+      NGINX_IMAGE: saadp30/multi-nginx
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to DockerHub
+      run: echo $DOCKERHUB_PASSWORD | docker login -u $DOCKERHUB_USERNAME --password-stdin
+
+    - name: Build and test React app Docker image
+      run: |
+        docker build -t $REACT_APP_IMAGE:test -f client/Dockerfile.dev client
+        docker run --rm $REACT_APP_IMAGE:test npm run test
+
+    - name: Build production React app Docker image
+      if: success()
+      run: docker build -t $REACT_APP_IMAGE:latest -f client/Dockerfile client
+
+    - name: Build production Server Docker image
+      if: success()
+      run: docker build -t $SERVER_APP1_IMAGE:latest -f server/Dockerfile server
+
+    - name: Build production Worker Docker image
+      if: success()
+      run: docker build -t $WORKER_APP2_IMAGE:latest -f woker/Dockerfile worker
+
+    - name: Build production Nginx Docker image
+      if: success()
+      run: docker build -t $NGINX_IMAGE:latest -f nginx/Dockerfile nginx
+
+    - name: Push production React app Docker image
+      if: success()
+      run: docker push $REACT_APP_IMAGE:latest
+
+    - name: Push production Server app Docker image
+      if: success()
+      run: docker push $SERVER_APP1_IMAGE:latest
+
+    - name: Push production Worker app Docker image
+      if: success()
+      run: docker push $WORKER_APP2_IMAGE:latest
+
+    - name: Push production Nginx Docker image
+      if: success()
+      run: docker push $NGINX_IMAGE:latest
